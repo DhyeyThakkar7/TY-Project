@@ -1,9 +1,10 @@
-// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
-// start
 import React, { useState, useRef, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination, Autoplay } from 'swiper/modules';
 import * as echarts from 'echarts';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/autoplay';
 interface Driver {
 name: string;
 firstName: string;
@@ -32,11 +33,39 @@ name: string;
 password: string;
 }
 const App: React.FC = () => {
+// Add animation keyframes
+const style = document.createElement('style');
+style.textContent = `
+@keyframes gradient {
+0% { background-position: 0% 50%; }
+50% { background-position: 100% 50%; }
+100% { background-position: 0% 50%; }
+}
+@keyframes modalAppear {
+from {
+opacity: 0;
+transform: scale(0.95);
+}
+to {
+opacity: 1;
+transform: scale(1);
+}
+}
+.animate-gradient {
+background-size: 200% 200%;
+animation: gradient 15s ease infinite;
+}
+.animate-modal-appear {
+animation: modalAppear 0.3s ease-out forwards;
+}
+`;
+document.head.appendChild(style);
 const [showAuthModal, setShowAuthModal] = useState(false);
 const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
 const [user, setUser] = useState<User>({ email: '', name: '', password: '' });
 const [error, setError] = useState('');
 const [showSuccessModal, setShowSuccessModal] = useState(false);
+const [selectedItem, setSelectedItem] = useState<{ type: 'track' | 'driver'; data: any } | null>(null);
 useEffect(() => {
 const isAuthenticated = localStorage.getItem('isAuthenticated');
 if (!isAuthenticated) {
@@ -76,7 +105,7 @@ setError('No account found with this email');
 }
 };
 const [theme, setTheme] = useState<'light' | 'dark'>('light');
-const [currentPage, setCurrentPage] = useState<'analysis' | 'database' | 'stats'>('analysis');
+const [currentPage, setCurrentPage] = useState<'home' | 'analysis' | 'database' | 'stats'>('home');
 const drivers: Driver[] = [
 {
 name: "Max Verstappen",
@@ -354,25 +383,36 @@ setTimeout(() => {
 const processedTrackImage = 'https://public.readdy.ai/ai/img_res/e0b7316311ec56a292c01cd71273270c.jpg';
 setPreviewImage(processedTrackImage);
 // Add a message to the chat
-setMessages(prev => [...prev, {
-text: 'Track analysis complete. I\'ve processed the circuit image and added racing line overlay. Would you like me to analyze optimal racing lines and braking points?',
-isUser: false
-}]);
+setMessages(prev => [
+  ...prev,
+  {
+    text: 'Track analysis complete. I\'ve processed the circuit image and added racing line overlay. Would you like me to analyze optimal racing lines and braking points?',
+    isUser: false,
+    timestamp: new Date().toLocaleTimeString() // Add timestamp
+  }
+]);
+
 }, 2000);
 } catch (error) {
 console.error('Error processing track image:', error);
-setMessages(prev => [...prev, {
-text: 'Sorry, there was an error processing the track image. Please try again.',
-isUser: false
-}]);
+setMessages(prev => [
+  ...prev,
+  {
+    text: 'Sorry, there was an error processing the track image. Please try again.',
+    isUser: false,
+    timestamp: new Date().toLocaleTimeString() // Add timestamp
+  }
+]);
+
 }
 }
 };
 interface Message {
-text: string;
-isUser: boolean;
-timestamp: string;
+  text: string;
+  isUser: boolean;
+  timestamp: string; // Add timestamp property
 }
+
 const [messages, setMessages] = useState<Message[]>([
 {
 text: 'Hello! I\'m your F1 Assistant. I can help you with:\n- Drivers, teams, and standings\n- Circuits and track information\n- Technical regulations and rules\n- Race strategy and tactics\n- F1 history and records\n\nWhat would you like to know about?',
@@ -678,15 +718,25 @@ Get Started
 )}
 {/* Navigation */}
 <nav className="bg-gradient-to-br from-[#15151E] to-[#1F1F2B] text-white backdrop-blur-lg shadow-xl border-b border-white/5 font-['Titillium_Web'] sticky top-0 z-50">
-<div className="max-w-7xl mx-auto px-4">
+<div className="max-w-full mx-auto px-4 lg:max-w-7xl">
 <div className="flex justify-between items-center h-20">
-<div className="flex items-center space-x-12">
+<div className="flex items-center space-x-6 lg:space-x-12">
 <img
 src="https://public.readdy.ai/ai/img_res/6bfc3bffbc4eec9df7471204d17ac85e.jpg"
 alt="F1 Sim Logo"
 className="h-14 hover:scale-105 transition-all duration-300 filter brightness-110"
 />
-<div className="hidden md:flex space-x-10">
+<div className="hidden md:flex space-x-4 lg:space-x-8">
+<button
+onClick={() => setCurrentPage('home')}
+className={`px-6 py-2.5 transition-all duration-300 text-[14px] tracking-wider font-medium
+${currentPage === 'home'
+? 'text-[#e10600]'
+: 'text-gray-300 hover:text-[#e10600]'}`}
+>
+<i className="fas fa-home mr-2"></i>
+Home
+</button>
 <button
 onClick={() => setCurrentPage('analysis')}
 className={`px-6 py-2.5 transition-all duration-300 text-[14px] tracking-wider font-medium
@@ -719,7 +769,7 @@ Driver Stats
 </button>
 </div>
 </div>
-<div className="flex items-center space-x-6">
+<div className="flex items-center space-x-3 lg:space-x-6">
 <button
 onClick={toggleTheme}
 className="!rounded-button bg-white/5 hover:bg-white/10 text-white/90 px-4 py-2.5 whitespace-nowrap transition-all duration-300 text-[14px] tracking-wide font-medium backdrop-blur-lg"
@@ -748,11 +798,138 @@ className="!rounded-button bg-gradient-to-r from-[#FF1E1E] to-[#FF4949] text-whi
 </div>
 </nav>
 {/* Main Content */}
-<div className="max-w-7xl mx-auto px-4 py-8">
+<div className="max-w-full mx-auto px-4 py-8 lg:max-w-7xl">
+{currentPage === 'home' && (
+<div className="relative min-h-[calc(100vh-80px)]">
+  {/* Hero Background */}
+  <div className="absolute inset-0 z-0">
+    <img 
+      src="https://public.readdy.ai/ai/img_res/ae9dedf85fe59f9c904c424cb863dae9.jpg"
+      alt="F1 Racing Background"
+      className="w-full h-full object-cover"
+    />
+    <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80"></div>
+  </div>
+
+  {/* Content */}
+  <div className="relative z-10 max-w-7xl mx-auto px-4 py-12">
+    {/* Hero Section */}
+    <div className="text-center mb-16">
+      <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+        Experience F1 <span className="text-[#e10600]">Like Never Before</span>
+      </h1>
+      <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
+        Dive into the world of Formula 1 with our advanced analytics, comprehensive database, and real-time insights.
+      </p>
+      <div className="flex flex-wrap justify-center gap-4">
+        <button 
+          onClick={() => setCurrentPage('analysis')}
+          className="!rounded-button bg-[#e10600] hover:bg-[#ff0000] text-white px-8 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105"
+        >
+          <i className="fas fa-chart-line mr-2"></i>
+          Start Analysis
+        </button>
+        <button 
+          className="!rounded-button bg-white/10 hover:bg-white/20 text-white px-8 py-4 text-lg font-semibold backdrop-blur-lg transition-all duration-300"
+        >
+          <i className="fas fa-play mr-2"></i>
+          Watch Demo
+        </button>
+      </div>
+    </div>
+
+    {/* Feature Grid */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+      <div className={`p-8 rounded-2xl backdrop-blur-lg border border-white/10 ${theme === 'light' ? 'bg-white/5' : 'bg-black/30'} hover:scale-105 transition-all duration-300`}>
+        <i className="fas fa-chart-bar text-4xl text-[#e10600] mb-4"></i>
+        <h3 className="text-2xl font-bold text-white mb-3">Real-time Analytics</h3>
+        <p className="text-gray-400">Advanced telemetry data analysis and performance metrics for every circuit and driver.</p>
+      </div>
+      <div className={`p-8 rounded-2xl backdrop-blur-lg border border-white/10 ${theme === 'light' ? 'bg-white/5' : 'bg-black/30'} hover:scale-105 transition-all duration-300`}>
+        <i className="fas fa-route text-4xl text-[#e10600] mb-4"></i>
+        <h3 className="text-2xl font-bold text-white mb-3">Track Insights</h3>
+        <p className="text-gray-400">Detailed circuit analysis, racing lines, and strategy recommendations for every track.</p>
+      </div>
+      <div className={`p-8 rounded-2xl backdrop-blur-lg border border-white/10 ${theme === 'light' ? 'bg-white/5' : 'bg-black/30'} hover:scale-105 transition-all duration-300`}>
+        <i className="fas fa-trophy text-4xl text-[#e10600] mb-4"></i>
+        <h3 className="text-2xl font-bold text-white mb-3">Driver Stats</h3>
+        <p className="text-gray-400">Comprehensive statistics and performance analysis for every F1 driver.</p>
+      </div>
+    </div>
+
+    {/* Live Race Updates */}
+    <div className={`rounded-2xl overflow-hidden backdrop-blur-lg border border-white/10 ${theme === 'light' ? 'bg-white/5' : 'bg-black/30'} mb-16`}>
+      <div className="p-6 border-b border-white/10">
+        <h2 className="text-2xl font-bold text-white">Live Race Updates</h2>
+      </div>
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-4">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-white">Monaco Grand Prix</span>
+          </div>
+          <span className="text-gray-400">Lap 45/78</span>
+        </div>
+        <div className="space-y-4">
+          {drivers.slice(0, 5).map((driver, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-400 w-6">{index + 1}</span>
+                <span className="text-white">{driver.name}</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <span className={driver.teamColor}>+{(index * 1.2).toFixed(1)}s</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Latest News */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className={`rounded-2xl overflow-hidden backdrop-blur-lg border border-white/10 ${theme === 'light' ? 'bg-white/5' : 'bg-black/30'} hover:scale-105 transition-all duration-300`}>
+        <img 
+          src="https://public.readdy.ai/ai/img_res/5ffd126b7e60cbeee0955dcdb4936a1b.jpg"
+          alt="Technical Update"
+          className="w-full h-48 object-cover"
+        />
+        <div className="p-6">
+          <h3 className="text-xl font-bold text-white mb-2">Technical Updates</h3>
+          <p className="text-gray-400">Latest aerodynamic developments and technical innovations from top teams.</p>
+        </div>
+      </div>
+      <div className={`rounded-2xl overflow-hidden backdrop-blur-lg border border-white/10 ${theme === 'light' ? 'bg-white/5' : 'bg-black/30'} hover:scale-105 transition-all duration-300`}>
+        <img 
+          src="https://public.readdy.ai/ai/img_res/5639eed49ae990acd6292ad59e6937dc.jpg"
+          alt="Race Highlights"
+          className="w-full h-48 object-cover"
+        />
+        <div className="p-6">
+          <h3 className="text-xl font-bold text-white mb-2">Race Highlights</h3>
+          <p className="text-gray-400">Catch up on the most exciting moments from recent Grand Prix events.</p>
+        </div>
+      </div>
+      <div className={`rounded-2xl overflow-hidden backdrop-blur-lg border border-white/10 ${theme === 'light' ? 'bg-white/5' : 'bg-black/30'} hover:scale-105 transition-all duration-300`}>
+        <img 
+          src="https://public.readdy.ai/ai/img_res/81d74581f59c25cffc274ad01a53a649.jpg"
+          alt="Strategy Analysis"
+          className="w-full h-48 object-cover"
+        />
+        <div className="p-6">
+          <h3 className="text-xl font-bold text-white mb-2">Strategy Analysis</h3>
+          <p className="text-gray-400">Deep dive into race strategies, tire management, and team tactics.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+)}
+
 {currentPage === 'analysis' && (
-<div className="flex gap-6">
+<div className="flex flex-col lg:flex-row gap-6">
 {/* Left Panel - Circuit Upload */}
-<div className="w-1/3 space-y-8">
+<div className="w-full lg:w-1/3 space-y-8">
 <div className={`rounded-2xl shadow-xl p-8 transition-all duration-500 hover:shadow-2xl backdrop-blur-lg border ${theme === 'light' ? 'bg-white/95 border-gray-100' : 'bg-[#1F1F2B]/95 border-white/5 text-white'}`}>
 <h2 className="text-xl font-bold mb-4">Circuit Selection</h2>
 <div className="relative">
@@ -837,7 +1014,7 @@ className="w-full h-48 rounded-lg object-cover"
 </div>
 {/* Right Panel - AI Chat */}
 <div className={`w-2/3 rounded-2xl shadow-lg p-6 ml-4 transition-all duration-300 backdrop-blur-lg border ${theme === 'light' ? 'bg-white/95 border-gray-100' : 'bg-[#1F1F2B]/95 border-white/5'}`}>
-<div className="h-[500px] flex flex-col">
+<div className="h-[400px] lg:h-[500px] flex flex-col">
 <div className="flex-1 overflow-y-auto mb-4 space-y-4">
 {messages.map((message, index) => (
 <div
@@ -913,7 +1090,7 @@ Weather Impact
 )}
 {currentPage === 'database' && (
 <>
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-8">
 {tracks.map((track, index) => (
 <div key={index} className={`rounded-2xl shadow-xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] border backdrop-blur-lg ${theme === 'light' ? 'bg-white/95 border-gray-100' : 'bg-[#1F1F2B]/95 border-white/5'}`}>
 <img src={track.image} alt={track.name} className="w-full h-48 object-cover" />
@@ -939,10 +1116,7 @@ Weather Impact
 </div>
 </div>
 <button
-onClick={() => {
-const detailsImage = `https://readdy.ai/api/search-image?query=detailed birds eye view of ${track.name} F1 racing circuit layout with clear track markings and racing lines, high resolution aerial photography&width=1200&height=800&orientation=landscape`;
-window.open(detailsImage, '_blank');
-}}
+onClick={() => setSelectedItem({ type: 'track', data: track })}
 className="!rounded-button mt-4 w-full bg-red-600 hover:bg-red-700 text-white py-2 whitespace-nowrap">
 <i className="fas fa-eye mr-2"></i>
 View Details
@@ -961,7 +1135,7 @@ View Details
 <h1 className="text-4xl font-bold">2025</h1>
 <h2 className="text-4xl font-bold">Drivers</h2>
 </div>
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-8">
 {drivers.map((driver) => (
 <div key={driver.position} className={`relative rounded-2xl overflow-hidden shadow-xl transition-all duration-300 group hover:scale-[1.02] ${theme === 'light' ? 'bg-white border border-gray-100' : 'bg-[#1F1F2B] border border-white/5'}`}>
 <div className="absolute top-4 left-4 text-7xl font-bold bg-gradient-to-r from-[#333333] to-transparent bg-clip-text text-transparent">
@@ -1000,10 +1174,7 @@ className="absolute inset-0 w-full h-full object-cover object-center"
 </div>
 </div>
 <button
-onClick={() => {
-const detailsImage = `https://readdy.ai/api/search-image?query=professional F1 driver ${driver.name} in racing suit with determined expression, high quality studio lighting on dark background&width=1200&height=800&orientation=landscape`;
-window.open(detailsImage, '_blank');
-}}
+onClick={() => setSelectedItem({ type: 'driver', data: driver })}
 className="!rounded-button mt-4 w-full bg-[#e10600] hover:bg-[#cc0500] text-white py-2 whitespace-nowrap">
 View Full Stats
 </button>
@@ -1016,8 +1187,295 @@ View Full Stats
 </div>
 )}
 </div>
+{/* Detail Modal */}
+{selectedItem && (
+<div className="fixed inset-0 bg-gradient-to-br from-black/95 via-black/85 to-black/95 flex items-center justify-center z-50 p-4 overflow-y-auto backdrop-blur-md animate-gradient">
+<div className={`relative w-full max-w-4xl rounded-2xl shadow-2xl ${theme === 'light' ? 'bg-white/95 backdrop-blur-xl border border-white/20' : 'bg-gray-900/95 backdrop-blur-xl border border-gray-700/30'} overflow-hidden transition-all duration-500 animate-modal-appear`}>
+<button
+onClick={() => setSelectedItem(null)}
+className={`absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-300 ${theme === 'light' ? 'bg-black/10 text-gray-600 hover:bg-black/20 hover:text-gray-800' : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'}`}
+>
+<i className="fas fa-times"></i>
+</button>
+{selectedItem.type === 'track' && (
+<div className="flex flex-col">
+<div className="relative h-72">
+<img
+src={`https://readdy.ai/api/search-image?query=aerial view of ${selectedItem.data.name} F1 circuit during golden hour, showing entire track layout with dramatic lighting and shadows&width=1200&height=600&orientation=landscape`}
+alt={selectedItem.data.name}
+className="w-full h-full object-cover"
+/>
+<div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-8">
+<h2 className="text-4xl font-bold text-white mb-2">{selectedItem.data.name}</h2>
+<p className="text-xl text-gray-300">{selectedItem.data.country}</p>
+</div>
+</div>
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 lg:p-6">
+<div className="space-y-4">
+<div className={`rounded-xl p-6 ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-800/80'}`}>
+<h3 className="text-xl font-bold mb-4">Circuit Details</h3>
+<div className="space-y-3">
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Length</span>
+<span className="font-semibold">{selectedItem.data.length}</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Corners</span>
+<span className="font-semibold">{selectedItem.data.corners}</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>DRS Zones</span>
+<span className="font-semibold">{selectedItem.data.drsZones}</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Lap Record</span>
+<span className="font-semibold">{selectedItem.data.lapRecord}</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Track Width</span>
+<span className="font-semibold">12-15m</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Run-off Areas</span>
+<span className="font-semibold">Asphalt and Gravel</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Direction</span>
+<span className="font-semibold">Clockwise</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Elevation Change</span>
+<span className="font-semibold">41.9m</span>
+</div>
+</div>
+</div>
+<div className={`rounded-xl p-6 ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-800/80'}`}>
+<h3 className="text-xl font-bold mb-4">Race Information</h3>
+<div className="space-y-3">
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Race Distance</span>
+<span className="font-semibold">308.405 km</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Number of Laps</span>
+<span className="font-semibold">52</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>First Grand Prix</span>
+<span className="font-semibold">1950</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Spectator Capacity</span>
+<span className="font-semibold">150,000</span>
+</div>
+</div>
+</div>
+<div className="grid grid-cols-2 gap-4">
+<img
+src={`https://readdy.ai/api/search-image?query=detailed corner sequence of ${selectedItem.data.name} F1 circuit showing racing line and curbs, technical photography&width=400&height=300&orientation=landscape`}
+alt="Corner Detail"
+className="rounded-lg w-full h-48 object-cover"
+/>
+<img
+src={`https://readdy.ai/api/search-image?query=pit lane and start finish straight of ${selectedItem.data.name} F1 circuit with modern facilities, architectural photography&width=400&height=300&orientation=landscape`}
+alt="Pit Lane"
+className="rounded-lg w-full h-48 object-cover"
+/>
+</div>
+</div>
+<div className="space-y-4">
+<img
+src={`https://readdy.ai/api/search-image?query=3D visualization of ${selectedItem.data.name} F1 circuit elevation changes and racing line analysis, technical illustration&width=800&height=400&orientation=landscape`}
+alt="Circuit Analysis"
+className="rounded-xl w-full h-[200px] object-cover"
+/>
+<div className={`rounded-xl p-6 ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-800/80'}`}>
+<h3 className="text-xl font-bold mb-4">Technical Insights</h3>
+<div className="space-y-4">
+<div>
+<h4 className="font-semibold mb-2">Key Overtaking Zones</h4>
+<p className="text-gray-500">Turn 1 (Heavy braking zone), Back straight DRS zone, Final corner complex</p>
+</div>
+<div>
+<h4 className="font-semibold mb-2">Tire Strategy</h4>
+<p className="text-gray-500">Medium to high tire degradation. Two-stop strategy typically optimal.</p>
+</div>
+<div>
+<h4 className="font-semibold mb-2">Weather Considerations</h4>
+<p className="text-gray-500">Variable conditions common. Track temperature can significantly impact tire performance.</p>
+</div>
+</div>
+</div>
+<div className={`rounded-xl p-6 ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-800/80'}`}>
+<h3 className="text-xl font-bold mb-4">Facilities</h3>
+<div className="space-y-3">
+<div className="flex items-center">
+<i className="fas fa-car-side w-8 text-gray-500"></i>
+<span>Modern pit complex with 20 garages</span>
+</div>
+<div className="flex items-center">
+<i className="fas fa-camera w-8 text-gray-500"></i>
+<span>Media center capacity: 400 journalists</span>
+</div>
+<div className="flex items-center">
+<i className="fas fa-helicopter w-8 text-gray-500"></i>
+<span>Helipad access for teams and emergency services</span>
+</div>
+<div className="flex items-center">
+<i className="fas fa-parking w-8 text-gray-500"></i>
+<span>25,000 parking spaces</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+)}
+{selectedItem.type === 'driver' && (
+<div className="flex flex-col">
+<div className="relative h-72">
+<img
+src={`https://readdy.ai/api/search-image?query=dramatic portrait of F1 driver ${selectedItem.data.name} in racing suit with determined expression, professional sports photography with dramatic lighting&width=1200&height=600&orientation=landscape`}
+alt={selectedItem.data.name}
+className="w-full h-full object-cover"
+/>
+<div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-8">
+<h2 className="text-4xl font-bold text-white mb-2">{selectedItem.data.name}</h2>
+<p className={`text-xl ${selectedItem.data.teamColor}`}>{selectedItem.data.team}</p>
+</div>
+</div>
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 lg:p-6">
+<div className="space-y-4">
+<div className={`rounded-xl p-6 ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-800/80'}`}>
+<h3 className="text-xl font-bold mb-4">Personal Information</h3>
+<div className="space-y-3">
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Nationality</span>
+<span className="font-semibold">Dutch</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Date of Birth</span>
+<span className="font-semibold">30 September 1997</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Place of Birth</span>
+<span className="font-semibold">Hasselt, Belgium</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Height</span>
+<span className="font-semibold">1.81m</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Weight</span>
+<span className="font-semibold">72kg</span>
+</div>
+</div>
+</div>
+<div className={`rounded-xl p-6 ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-800/80'}`}>
+<h3 className="text-xl font-bold mb-4">2025 Season Statistics</h3>
+<div className="space-y-3">
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Championship Position</span>
+<span className="font-semibold">{selectedItem.data.position}</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Points</span>
+<span className="font-semibold">{selectedItem.data.points}</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Wins</span>
+<span className="font-semibold">{selectedItem.data.wins}</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Podiums</span>
+<span className="font-semibold">{selectedItem.data.podiums}</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Fastest Laps</span>
+<span className="font-semibold">{selectedItem.data.fastestLaps}</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Pole Positions</span>
+<span className="font-semibold">14</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Laps Led</span>
+<span className="font-semibold">824</span>
+</div>
+<div className="flex justify-between">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>DNFs</span>
+<span className="font-semibold">2</span>
+</div>
+</div>
+</div>
+<div className="grid grid-cols-2 gap-4">
+<img
+src={`https://readdy.ai/api/search-image?query=${selectedItem.data.name} F1 driver celebrating on podium with trophy, emotional victory moment&width=400&height=300&orientation=landscape`}
+alt="Victory Celebration"
+className="rounded-lg w-full h-48 object-cover"
+/>
+<img
+src={`https://readdy.ai/api/search-image?query=${selectedItem.data.name} F1 driver in intense racing action on track, dynamic motorsport photography&width=400&height=300&orientation=landscape`}
+alt="Racing Action"
+className="rounded-lg w-full h-48 object-cover"
+/>
+</div>
+</div>
+<div className="space-y-4">
+<img
+src={`https://readdy.ai/api/search-image?query=professional studio portrait of F1 driver ${selectedItem.data.name} in team uniform showing determination and focus, high end fashion photography&width=800&height=200&orientation=landscape`}
+alt="Driver Portrait"
+className="rounded-xl w-full h-[200px] object-cover"
+/>
+<div className={`rounded-xl p-6 ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-800/80'}`}>
+<h3 className="text-xl font-bold mb-4">Career Highlights</h3>
+<div className="space-y-3">
+<div className="flex justify-between items-center">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>F1 Debut</span>
+<span className="font-semibold">2015 Australian GP</span>
+</div>
+<div className="flex justify-between items-center">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>First Win</span>
+<span className="font-semibold">2016 Spanish GP</span>
+</div>
+<div className="flex justify-between items-center">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>World Championships</span>
+<span className="font-semibold">4 (2021, 2022, 2023, 2024)</span>
+</div>
+<div className="flex justify-between items-center">
+<span className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Career Points</span>
+<span className="font-semibold">2,845</span>
+</div>
+</div>
+</div>
+<div className={`rounded-xl p-6 ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-800/80'}`}>
+<h3 className="text-xl font-bold mb-4">Racing Style Analysis</h3>
+<div className="space-y-4">
+<div>
+<h4 className="font-semibold mb-2">Strengths</h4>
+<p className="text-gray-500">Exceptional wet weather driving, aggressive overtaking, consistent race pace</p>
+</div>
+<div>
+<h4 className="font-semibold mb-2">Signature Moves</h4>
+<p className="text-gray-500">Late braking overtakes, defensive positioning in high-speed corners</p>
+</div>
+<div>
+<h4 className="font-semibold mb-2">Preferred Circuits</h4>
+<p className="text-gray-500">Spa-Francorchamps, Silverstone, Suzuka</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+)}
+</div>
+</div>
+)}
 </div>
 );
 };
-export default App;
-// end
+export default App
+
+
+in this react code change the size of the window that pops up when view details or view stats button is clicked and remove the unnecessary white/black background from all pages and make it fit to screen. give me the code that i have to change with line numbers
